@@ -1,3 +1,4 @@
+'use strict';
 const users = [];
 
 // Join user to chat
@@ -19,13 +20,13 @@ function userLeave(id) {
   const index = users.findIndex(user => user.id === id);
 
   if (index !== -1) {
-    return users.splice(index, 1)[0];
+    return users.splice(index, 1)[0]; // delete from users arr
   }
 }
 
 // Get room users
 function getRoomUsers(room) {
-  return users.filter(user => user.room === room);
+  return users.filter(user => user.room === room); 
 }
 
 module.exports = {

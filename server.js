@@ -1,6 +1,6 @@
+'use strict'
 
-
-const path = require('path');//node js core module 
+const path = require('path');//node js core module to read    public file?
 const http = require('http');//package or module 
 //1
 const express = require('express');
@@ -14,32 +14,29 @@ const {
   getRoomUsers
 } = require('./utils/users');
 
-
+// to save msg for the stream 
 let queue=[];
-//2
+
 const app = express();
-//6
+
 const server = http.createServer(app);
-//8
+
 const io = socketio(server);
 
-//5 Set static folder//i want puplic folder to set as static folder to access html pages (chat.html,index.html)
+// Set static folder//i want puplic folder to set as static folder to access html pages (chat.html,index.html)
 app.use(express.static(path.join(__dirname, 'public')));//after this we can open http//:localhost:300
 
 const botName = 'Chat-App';
 
 //9 Run when client connects
+
 io.on('connection', socket => {
   console.log('new WS connection');
   socket.on('joinRoom', ({ username, room }) => {
     const user = userJoin(socket.id, username, room);
-
     socket.join(user.room);
 
-    //10 Welcome current user
- 
-   
-    socket.emit('message', formatMessage(botName, 'Welcome to Chat-App!'));
+    socket.emit('message', formatMessage(botName, 'Welcome to Chat-Stream!'));
     for (let i=0;i<queue.length;i++ ){
       socket.emit('message', formatMessage(queue[i].name,queue[i].msg));
     }
@@ -50,10 +47,7 @@ io.on('connection', socket => {
     //differnce between socket.emit ==> for the single client //socket.broadcast.emit====> all clients except the client that connecting
     //and io.emit =====> for all clients . 
 
-    socket.broadcast
-      .to(user.room)
-      .emit(
-        'message',
+    socket.broadcast.to(user.room).emit('message',
         formatMessage(botName, `${user.username} has joined the chat`)
       );
 
@@ -71,13 +65,13 @@ io.on('connection', socket => {
     io.to(user.room).emit('message', formatMessage(user.username, msg));
     console.log(user.username);
     console.log(msg);
-    queue.push({name:[user.username],msg});
+    queue.push({name:[user.username],msg});//push username ,msg to queue to save data if client disconnect and reconnect
     console.log('queue',queue);
 
    
   });
 
-  // Runs when client disconnects
+  //  client disconnects
   socket.on('disconnect', () => {
     const user = userLeave(socket.id);
 
@@ -87,7 +81,7 @@ io.on('connection', socket => {
         formatMessage(botName, `${user.username} has left the chat`)
       );
 
-      // Send users and room info
+      // Send users and room info" left"
       io.to(user.room).emit('roomUsers', {
         room: user.room,
         users: getRoomUsers(user.room)
