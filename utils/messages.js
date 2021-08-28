@@ -1,8 +1,6 @@
+'use strict';
 
-//to format the message //require ie in server 
-
-//install it 
-const moment = require('moment');
+const moment = require('moment'); // for time?
 
 function formatMessage(username, text) {
   return {
