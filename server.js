@@ -13,6 +13,9 @@ const {
   userLeave,
   getRoomUsers
 } = require('./utils/users');
+
+
+let queue=[];
 //2
 const app = express();
 //6
@@ -34,7 +37,14 @@ io.on('connection', socket => {
     socket.join(user.room);
 
     //10 Welcome current user
+ 
+   
     socket.emit('message', formatMessage(botName, 'Welcome to Chat-App!'));
+    for (let i=0;i<queue.length;i++ ){
+      socket.emit('message', formatMessage(queue[i].name,queue[i].msg));
+    }
+   
+
 
     // Broadcast when a user connects
     //differnce between socket.emit ==> for the single client //socket.broadcast.emit====> all clients except the client that connecting
@@ -59,6 +69,12 @@ io.on('connection', socket => {
     const user = getCurrentUser(socket.id);
 
     io.to(user.room).emit('message', formatMessage(user.username, msg));
+    console.log(user.username);
+    console.log(msg);
+    queue.push({name:[user.username],msg});
+    console.log('queue',queue);
+
+   
   });
 
   // Runs when client disconnects
