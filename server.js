@@ -1,7 +1,7 @@
 'use strict'
 
-const path = require('path');//node js core module to read    public file?
-const http = require('http');//package or module 
+const path = require('path'); //node js core module to read    public file?
+const http = require('http'); //package or module 
 //1
 const express = require('express');
 //7
@@ -14,8 +14,10 @@ const {
   getRoomUsers
 } = require('./utils/users');
 
+const Queue = require('./utils/Queue');
+
 // to save msg for the stream 
-let queue=[];
+let msgQueue = new Queue();
 
 const app = express();
 
@@ -24,7 +26,7 @@ const server = http.createServer(app);
 const io = socketio(server);
 
 // Set static folder//i want puplic folder to set as static folder to access html pages (chat.html,index.html)
-app.use(express.static(path.join(__dirname, 'public')));//after this we can open http//:localhost:300
+app.use(express.static(path.join(__dirname, 'public'))); //after this we can open http//:localhost:300
 
 const botName = 'Chat-App';
 
@@ -32,24 +34,35 @@ const botName = 'Chat-App';
 
 io.on('connection', socket => {
   console.log('new WS connection');
-  socket.on('joinRoom', ({ username, room }) => {
+  socket.on('joinRoom', ({
+    username,
+    room
+  }) => {
     const user = userJoin(socket.id, username, room);
     socket.join(user.room);
 
     socket.emit('message', formatMessage(botName, 'Welcome to Chat-Stream!'));
-    for (let i=0;i<queue.length;i++ ){
-      socket.emit('message', formatMessage(queue[i].name,queue[i].msg));
-    }
-   
 
+
+    let recollection = msgQueue.recall()
+
+    if (!msgQueue.isEmpty()) {
+      while (recollection.length !== 0) {
+        const {
+          name,
+          msg
+        } = recollection.shift();
+        socket.emit('message', formatMessage(name, msg));
+      }
+    }
 
     // Broadcast when a user connects
     //differnce between socket.emit ==> for the single client //socket.broadcast.emit====> all clients except the client that connecting
     //and io.emit =====> for all clients . 
 
     socket.broadcast.to(user.room).emit('message',
-        formatMessage(botName, `${user.username} has joined the chat`)
-      );
+      formatMessage(botName, `${user.username} has joined the chat`)
+    );
 
     // Send users and room info
     io.to(user.room).emit('roomUsers', {
@@ -63,12 +76,13 @@ io.on('connection', socket => {
     const user = getCurrentUser(socket.id);
 
     io.to(user.room).emit('message', formatMessage(user.username, msg));
-    console.log(user.username);
-    console.log(msg);
-    queue.push({name:[user.username],msg});//push username ,msg to queue to save data if client disconnect and reconnect
-    console.log('queue',queue);
 
-   
+    msgQueue.enqueue({
+      name: user.username,
+      msg: msg
+    });
+
+    console.log(msgQueue.printQueue());
   });
 
   //  client disconnects
